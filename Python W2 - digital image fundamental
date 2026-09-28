@@ -1,0 +1,102 @@
+import cv2, numpy as np, matplotlib.pyplot as plt
+from PIL import Image
+
+def image_sampling(img, n):
+    return img[::n, ::n] if n > 0 else print("Error: n > 0")
+
+def image_quantization(img, k):
+    if not (0 < k < 8):
+        print("Error: k harus 1-7")
+        return None
+    levels = 2 ** k
+    quantized = np.floor(img / 256.0 * levels)
+    return (quantized * (255.0 / (levels - 1))).astype(np.uint8)
+
+def image_properties(img, dpi):
+    h, w = img.shape[:2]
+    ch = 1 if img.ndim == 2 else img.shape[2]
+    print(f"\n--- PROPERTIES ---\nUkuran: {w}x{h} px | DPI: {dpi}\nFisik: {w/dpi:.2f} x {h/dpi:.2f} inch\nMemori: {round((w * h * ch) / 1024, 2)} KB")
+
+def display_sampling(img, n):
+    plt.figure(figsize=(5 * n, 5))
+
+    for i in range(n):
+        if i == 0:
+            im = img
+            title = "Asli"
+        else:
+            faktor = i + 1
+            im = image_sampling(img, faktor)
+            title = f"Sampling (n={faktor})"
+
+        plt.subplot(1, n, i + 1)
+        plt.imshow(im)
+        plt.title(title)
+        plt.axis("off")
+
+    plt.tight_layout()
+    plt.show()
+
+def display(orig, proc, title):
+    for i, (im, t) in enumerate([(orig, "Asli"), (proc, title)], 1):
+        plt.subplot(1, 2, i)
+        plt.imshow(im)
+        plt.title(t)
+        plt.axis("off")
+
+    plt.tight_layout()
+    plt.show()
+
+def main():
+    img_bgr = cv2.imread("gambar.png")
+
+    if img_bgr is None:
+        return print("Error: File 'gambar.png' tidak ditemukan.")
+
+    img = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
+    while True:
+        p = input(
+            "\n1.Sampling 2.Quantization 3.Properties 4.Keluar\n"
+            "Pilih (1-4): "
+        ).strip()
+
+        try:
+            if p == '1':
+                n = int(input("Faktor sampling (n): "))
+
+                if n <= 0:
+                    print("Error: n harus lebih dari 0")
+                    continue
+                display_sampling(img, n)
+                res = image_sampling(img, n)
+                if res is not None:
+                    Image.fromarray(res).save("hasil_sampling.jpg")
+
+            elif p == '2':
+                k = int(input("Bit depth (1-7): "))
+
+                res = image_quantization(img, k)
+
+                if res is not None:
+                    Image.fromarray(res).save("hasil_quantization.jpg")
+                    display(
+                        img,
+                        res,
+                        f"Kuantisasi ({k}-bit)"
+                    )
+
+            elif p == '3':
+                image_properties(
+                    img,
+                    int(input("DPI: "))
+                )
+
+            elif p == '4':
+                break
+
+        except ValueError:
+            print("Error: Input harus angka!")
+
+if __name__ == "__main__":
+    main()
